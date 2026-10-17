@@ -3,6 +3,19 @@ import { editor, viewport } from "express-document-sdk";
 
 const { runtime } = addOnSandboxSdk.instance;
 
+// Resolve IDs while the visited page is active; retain no content references between calls.
+function findInsertionParent(page, parentId) {
+    const find = (node) => {
+        if (node.id === parentId) return node;
+        for (const child of node.allChildren || []) {
+            const match = find(child);
+            if (match) return match;
+        }
+        return null;
+    };
+    return find(page) || page.artboards.first;
+}
+
 function start() {
     const sandboxApi = {
         // Test function to verify sandbox is working
@@ -33,11 +46,10 @@ function start() {
                 const centerY = pageHeight / 2;
                 
                 
-                // Load the bitmap image directly from blob (async operation)
-                const bitmapImage = await editor.loadBitmapImage(blob);
-                
-                // After async operation, use queueAsyncEdit for document changes
-                editor.queueAsyncEdit(() => {
+                const parentId = editor.context.insertionParent.id;
+                await editor.documentRoot.pages.visitPages([currentPage], async (activePage) => {
+                    const parent = findInsertionParent(activePage, parentId);
+                    const bitmapImage = await editor.loadBitmapImage(blob);
                     // Create image container without initialSize - uses bitmap's natural dimensions
                     // This ensures the aspect ratio matches exactly
                     const mediaContainer = editor.createImageContainer(bitmapImage);
@@ -55,7 +67,7 @@ function start() {
                     mediaContainer.translation = { x: chartX, y: chartY };
                     
                     // Add to the current artboard
-                    editor.context.insertionParent.children.append(mediaContainer);
+                    parent.children.append(mediaContainer);
                     
                     // Auto-select the newly created chart element
                     editor.context.selection = [mediaContainer];
