@@ -73,6 +73,47 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
   const labels = data?.labels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const values = data?.values || [120, 200, 150, 80, 70, 110, 130];
 
+  const showDataZoom = labels.length > 10;
+  const dataZoomConfig = showDataZoom ? [
+    {
+      type: 'inside',
+      xAxisIndex: 0,
+      startValue: 0,
+      endValue: 9
+    },
+    {
+      type: 'slider',
+      show: true,
+      xAxisIndex: 0,
+      bottom: 10,
+      height: 15,
+      handleSize: '80%',
+      showDetail: false,
+      startValue: 0,
+      endValue: 9
+    }
+  ] : [];
+
+  const verticalDataZoomConfig = showDataZoom ? [
+    {
+      type: 'inside',
+      yAxisIndex: 0,
+      startValue: 0,
+      endValue: 9
+    },
+    {
+      type: 'slider',
+      show: true,
+      yAxisIndex: 0,
+      right: 10,
+      width: 15,
+      handleSize: '80%',
+      showDetail: false,
+      startValue: 0,
+      endValue: 9
+    }
+  ] : [];
+
   const baseConfig = {
     backgroundColor: currentTheme.backgroundColor,
     textStyle: {
@@ -92,7 +133,8 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '3%',
+      top: '15%',
+      bottom: showDataZoom ? '24%' : '15%',
       containLabel: true,
       borderColor: currentTheme.gridColor
     }
@@ -127,7 +169,8 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           boundaryGap: true,
           axisLabel: {
             ...getTextStyle(),
-            rotate: stylingOptions?.xAxisRotation ?? 0
+            rotate: stylingOptions?.xAxisRotation ?? 0,
+            hideOverlap: true
           },
           axisLine: { lineStyle: { color: currentTheme.gridColor } }
         },
@@ -137,6 +180,7 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           axisLine: { lineStyle: { color: currentTheme.gridColor } },
           splitLine: { lineStyle: { color: currentTheme.gridColor } }
         },
+        dataZoom: dataZoomConfig,
         series: [{
           data: values,
           type: 'bar',
@@ -161,7 +205,8 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           boundaryGap: false,
           axisLabel: {
             ...getTextStyle(),
-            rotate: stylingOptions?.xAxisRotation ?? 0
+            rotate: stylingOptions?.xAxisRotation ?? 0,
+            hideOverlap: true
           },
           axisLine: { lineStyle: { color: currentTheme.gridColor } }
         },
@@ -171,6 +216,7 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           axisLine: { lineStyle: { color: currentTheme.gridColor } },
           splitLine: { lineStyle: { color: currentTheme.gridColor } }
         },
+        dataZoom: dataZoomConfig,
         series: [{
           data: values,
           type: 'line',
@@ -192,8 +238,9 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           formatter: '{a} <br/>{b}: {c} ({d}%)'
         },
         legend: {
+          type: 'scroll',
           data: labels,
-          bottom: 0,
+          top: 0,
           show: stylingOptions?.showLegend !== false,
           textStyle: getTextStyle()
         },
@@ -232,8 +279,9 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           formatter: '{a} <br/>{b}: {c} ({d}%)'
         },
         legend: {
+          type: 'scroll',
           data: labels,
-          bottom: 0,
+          top: 0,
           show: stylingOptions?.showLegend !== false,
           textStyle: getTextStyle()
         },
@@ -278,7 +326,8 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           boundaryGap: false,
           axisLabel: {
             ...getTextStyle(),
-            rotate: stylingOptions?.xAxisRotation ?? 0
+            rotate: stylingOptions?.xAxisRotation ?? 0,
+            hideOverlap: true
           },
           axisLine: { lineStyle: { color: currentTheme.gridColor } }
         },
@@ -288,6 +337,7 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           axisLine: { lineStyle: { color: currentTheme.gridColor } },
           splitLine: { lineStyle: { color: currentTheme.gridColor } }
         },
+        dataZoom: dataZoomConfig,
         series: [{
           data: values,
           type: 'line',
@@ -320,6 +370,16 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           axisLine: { lineStyle: { color: currentTheme.gridColor } },
           splitLine: { lineStyle: { color: currentTheme.gridColor } }
         },
+        dataZoom: [
+          {
+            type: 'inside',
+            xAxisIndex: 0
+          },
+          {
+            type: 'inside',
+            yAxisIndex: 0
+          }
+        ],
         series: [{
           data: labels.map((label, index) => [index, values[index]]),
           type: 'scatter',
@@ -413,7 +473,9 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           formatter: '{a} <br/>{b}: {c}'
         },
         legend: {
+          type: 'scroll',
           data: labels,
+          top: 0,
           textStyle: getTextStyle()
         },
         series: [{
@@ -442,6 +504,46 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
         }]
       };
 
+    case 'bar-horizontal':
+      return {
+        ...baseConfig,
+        tooltip: {
+          ...baseConfig.tooltip,
+          trigger: 'axis',
+          axisPointer: { type: 'shadow' }
+        },
+        grid: {
+          ...baseConfig.grid,
+          bottom: '15%',
+          right: showDataZoom ? '15%' : '4%'
+        },
+        xAxis: {
+          type: 'value',
+          axisLabel: getTextStyle(),
+          axisLine: { lineStyle: { color: currentTheme.gridColor } },
+          splitLine: { lineStyle: { color: currentTheme.gridColor } }
+        },
+        yAxis: {
+          type: 'category',
+          data: labels,
+          axisLabel: {
+            ...getTextStyle(),
+            hideOverlap: true
+          },
+          axisLine: { lineStyle: { color: currentTheme.gridColor } }
+        },
+        dataZoom: verticalDataZoomConfig,
+        series: [{
+          data: values,
+          type: 'bar',
+          barWidth: stylingOptions?.barWidth ? `${stylingOptions.barWidth}%` : undefined,
+          itemStyle: {
+            color: currentTheme.colors[0],
+            borderRadius: stylingOptions?.barBorderRadius ?? 0
+          }
+        }]
+      };
+
     case 'mixed':
       return {
         ...baseConfig,
@@ -450,7 +552,9 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           trigger: 'axis'
         },
         legend: {
+          type: 'scroll',
           data: ['Bar', 'Line'],
+          top: 0,
           textStyle: getTextStyle()
         },
         xAxis: {
@@ -458,7 +562,8 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           data: labels,
           axisLabel: {
             ...getTextStyle(),
-            rotate: stylingOptions?.xAxisRotation ?? 0
+            rotate: stylingOptions?.xAxisRotation ?? 0,
+            hideOverlap: true
           },
           axisLine: { lineStyle: { color: currentTheme.gridColor } }
         },
@@ -468,6 +573,7 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           axisLine: { lineStyle: { color: currentTheme.gridColor } },
           splitLine: { lineStyle: { color: currentTheme.gridColor } }
         },
+        dataZoom: dataZoomConfig,
         series: [
           {
             name: 'Bar',
@@ -497,7 +603,10 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
         xAxis: {
           type: 'category',
           data: labels,
-          axisLabel: getTextStyle(),
+          axisLabel: {
+            ...getTextStyle(),
+            hideOverlap: true
+          },
           axisLine: { lineStyle: { color: currentTheme.gridColor } }
         },
         yAxis: {
@@ -506,6 +615,7 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
           axisLine: { lineStyle: { color: currentTheme.gridColor } },
           splitLine: { lineStyle: { color: currentTheme.gridColor } }
         },
+        dataZoom: dataZoomConfig,
         series: [{
           data: values,
           type: 'bar',

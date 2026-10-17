@@ -155,6 +155,7 @@ const ChartPreview = ({
             grid: {
                 left: '3%',
                 right: '4%',
+                top: '15%',
                 bottom: '3%',
                 containLabel: true,
                 borderColor: currentTheme.gridColor
@@ -223,6 +224,7 @@ const ChartPreview = ({
 
         switch (chartType) {
             case 'bar':
+                const barShowDataZoom = commonData.length > 10;
                 return {
                     ...baseConfig,
                     tooltip: {
@@ -233,16 +235,17 @@ const ChartPreview = ({
                         }
                     },
                     legend: {
+                        type: 'scroll',
                         data: isMultipleSeries && shouldUseAllSeries ? seriesNames : ['Sales'],
                         textStyle: getTextStyle(),
-                        bottom: 0,
+                        top: 0,
                         left: 'center',
                         show: stylingOptions?.showLegend !== false
                     },
                     grid: {
                         ...baseConfig.grid,
                         top: '15%',
-                        bottom: '15%'
+                        bottom: barShowDataZoom ? '24%' : '15%'
                     },
                     xAxis: {
                         type: 'category',
@@ -252,7 +255,8 @@ const ChartPreview = ({
                             ...getLabelStyle({
                                 color: currentTheme.textColor
                             }),
-                            rotate: stylingOptions?.xAxisRotation ?? 0
+                            rotate: stylingOptions?.xAxisRotation ?? 0,
+                            hideOverlap: true
                         },
                         axisLine: {
                             lineStyle: {
@@ -279,6 +283,25 @@ const ChartPreview = ({
                             }
                         }
                     },
+                    dataZoom: barShowDataZoom ? [
+                        {
+                            type: 'inside',
+                            xAxisIndex: 0,
+                            startValue: 0,
+                            endValue: 9
+                        },
+                        {
+                            type: 'slider',
+                            show: true,
+                            xAxisIndex: 0,
+                            bottom: 10,
+                            height: 15,
+                            handleSize: '80%',
+                            showDetail: false,
+                            startValue: 0,
+                            endValue: 9
+                        }
+                    ] : [],
                     series: isMultipleSeries && shouldUseAllSeries 
                         ? (() => {
                             const numSeries = allSeriesValues.length;
@@ -331,6 +354,7 @@ const ChartPreview = ({
                 };
 
             case 'line':
+                const lineShowDataZoom = commonData.length > 10;
                 return {
                     ...baseConfig,
                     tooltip: {
@@ -338,16 +362,17 @@ const ChartPreview = ({
                         trigger: 'axis'
                     },
                     legend: {
+                        type: 'scroll',
                         data: isMultipleSeries && shouldUseAllSeries ? seriesNames : ['Sales'],
                         textStyle: getTextStyle(),
-                        bottom: 0,
+                        top: 0,
                         left: 'center',
                         show: stylingOptions?.showLegend !== false
                     },
                     grid: {
                         ...baseConfig.grid,
                         top: '15%',
-                        bottom: '15%'
+                        bottom: lineShowDataZoom ? '24%' : '15%'
                     },
                     xAxis: {
                         type: 'category',
@@ -357,7 +382,8 @@ const ChartPreview = ({
                             ...getLabelStyle({
                                 color: currentTheme.textColor
                             }),
-                            rotate: stylingOptions?.xAxisRotation ?? 0
+                            rotate: stylingOptions?.xAxisRotation ?? 0,
+                            hideOverlap: true
                         },
                         axisLine: {
                             lineStyle: {
@@ -384,6 +410,25 @@ const ChartPreview = ({
                             }
                         }
                     },
+                    dataZoom: lineShowDataZoom ? [
+                        {
+                            type: 'inside',
+                            xAxisIndex: 0,
+                            startValue: 0,
+                            endValue: 9
+                        },
+                        {
+                            type: 'slider',
+                            show: true,
+                            xAxisIndex: 0,
+                            bottom: 10,
+                            height: 15,
+                            handleSize: '80%',
+                            showDetail: false,
+                            startValue: 0,
+                            endValue: 9
+                        }
+                    ] : [],
                     series: isMultipleSeries && shouldUseAllSeries 
                         ? allSeriesValues.map((seriesValues, index) => ({
                             name: seriesNames[index] || `Series ${index + 1}`,
@@ -453,8 +498,9 @@ const ChartPreview = ({
                         formatter: '{a} <br/>{b}: {c} ({d}%)'
                     },
                     legend: {
+                        type: 'scroll',
                         data: commonData,
-                        bottom: 0,
+                        top: 0,
                         show: stylingOptions?.showLegend !== false,
                         textStyle: getLabelStyle({
                             color: currentTheme.textColor
@@ -517,6 +563,7 @@ const ChartPreview = ({
                 };
 
             case 'area':
+                const areaShowDataZoom = commonData.length > 10;
                 return {
                     ...baseConfig,
                     tooltip: {
@@ -524,16 +571,17 @@ const ChartPreview = ({
                         trigger: 'axis'
                     },
                     legend: {
+                        type: 'scroll',
                         data: isMultipleSeries && shouldUseAllSeries ? seriesNames : ['Sales'],
                         textStyle: getTextStyle(),
-                        bottom: 0,
+                        top: 0,
                         left: 'center',
                         show: stylingOptions?.showLegend !== false
                     },
                     grid: {
                         ...baseConfig.grid,
                         top: '15%',
-                        bottom: '15%'
+                        bottom: areaShowDataZoom ? '24%' : '15%'
                     },
                     xAxis: {
                         type: 'category',
@@ -543,7 +591,8 @@ const ChartPreview = ({
                                 fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor
                             }),
-                            rotate: stylingOptions?.xAxisRotation ?? 0
+                            rotate: stylingOptions?.xAxisRotation ?? 0,
+                            hideOverlap: true
                         },
                         axisLine: {
                             lineStyle: {
@@ -571,6 +620,25 @@ const ChartPreview = ({
                             }
                         }
                     },
+                    dataZoom: areaShowDataZoom ? [
+                        {
+                            type: 'inside',
+                            xAxisIndex: 0,
+                            startValue: 0,
+                            endValue: 9
+                        },
+                        {
+                            type: 'slider',
+                            show: true,
+                            xAxisIndex: 0,
+                            bottom: 10,
+                            height: 15,
+                            handleSize: '80%',
+                            showDetail: false,
+                            startValue: 0,
+                            endValue: 9
+                        }
+                    ] : [],
                     series: isMultipleSeries && shouldUseAllSeries
                         ? allSeriesValues.map((seriesValues, index) => ({
                             name: seriesNames[index] || `Series ${index + 1}`,
@@ -649,7 +717,8 @@ const ChartPreview = ({
                     },
                     grid: {
                         ...baseConfig.grid,
-                        top: '15%'
+                        top: '15%',
+                        bottom: '15%'
                     },
                     xAxis: {
                         type: 'value',
@@ -696,17 +765,23 @@ const ChartPreview = ({
                         }
                     },
                     legend: {
+                        type: 'scroll',
                         data: isMultipleSeries && shouldUseAllSeries ? seriesNames : ['Sales'],
                         textStyle: getTextStyle(),
-                        bottom: 0,
+                        top: 0,
                         left: 'center',
                         show: stylingOptions?.showLegend !== false
                     },
-                    grid: {
-                        ...baseConfig.grid,
-                        top: '15%',
-                        bottom: '15%'
-                    },
+                    dataZoom: [
+                        {
+                            type: 'inside',
+                            xAxisIndex: 0
+                        },
+                        {
+                            type: 'inside',
+                            yAxisIndex: 0
+                        }
+                    ],
                     series: isMultipleSeries && shouldUseAllSeries
                         ? allSeriesValues.map((seriesValues, index) => ({
                             name: seriesNames[index] || `Series ${index + 1}`,
@@ -793,6 +868,7 @@ const ChartPreview = ({
                 };
 
             case 'bar-horizontal':
+                const barHorizShowDataZoom = commonData.length > 10;
                 return {
                     ...baseConfig,
                     tooltip: {
@@ -806,7 +882,7 @@ const ChartPreview = ({
                         ...baseConfig.grid,
                         top: '15%',
                         left: '15%',
-                        right: '4%'
+                        right: barHorizShowDataZoom ? '15%' : '4%'
                     },
                     xAxis: {
                         type: 'value',
@@ -834,7 +910,8 @@ const ChartPreview = ({
                             ...getLabelStyle({
                                 color: currentTheme.textColor
                             }),
-                            rotate: stylingOptions?.yAxisRotation ?? 0
+                            rotate: stylingOptions?.yAxisRotation ?? 0,
+                            hideOverlap: true
                         },
                         axisLine: {
                             lineStyle: {
@@ -842,6 +919,25 @@ const ChartPreview = ({
                             }
                         }
                     },
+                    dataZoom: barHorizShowDataZoom ? [
+                        {
+                            type: 'inside',
+                            yAxisIndex: 0,
+                            startValue: 0,
+                            endValue: 9
+                        },
+                        {
+                            type: 'slider',
+                            show: true,
+                            yAxisIndex: 0,
+                            right: 10,
+                            width: 15,
+                            handleSize: '80%',
+                            showDetail: false,
+                            startValue: 0,
+                            endValue: 9
+                        }
+                    ] : [],
                     series: [
                         {
                             name: 'Sales',
@@ -877,8 +973,9 @@ const ChartPreview = ({
                         formatter: '{a} <br/>{b}: {c} ({d}%)'
                     },
                     legend: {
+                        type: 'scroll',
                         data: commonData,
-                        bottom: 0,
+                        top: 0,
                         show: stylingOptions?.showLegend !== false,
                         textStyle: getLabelStyle({
                             color: currentTheme.textColor
@@ -950,7 +1047,9 @@ const ChartPreview = ({
                         formatter: '{a} <br/>{b}: {c}'
                     },
                     legend: {
+                        type: 'scroll',
                         data: commonData,
+                        top: 0,
                         textStyle: getLabelStyle({
                             color: currentTheme.textColor
                         }),
@@ -1044,9 +1143,10 @@ const ChartPreview = ({
                         trigger: 'item'
                     },
                     legend: {
+                        type: 'scroll',
                         data: isMultipleSeries && shouldUseAllSeries ? seriesNames : ['Sales'],
                         textStyle: getTextStyle(),
-                        bottom: 0,
+                        top: 0,
                         left: 'center',
                         show: stylingOptions?.showLegend !== false
                     },
@@ -1125,6 +1225,7 @@ const ChartPreview = ({
                 };
 
             case 'mixed':
+                const mixedShowDataZoom = commonData.length > 10;
                 return {
                     ...baseConfig,
                     tooltip: {
@@ -1134,9 +1235,10 @@ const ChartPreview = ({
                     legend: (() => {
                         const mixedValues = getMixedChartValues();
                         return {
+                            type: 'scroll',
                             data: [mixedValues.barName, mixedValues.lineName],
                             textStyle: getTextStyle(),
-                            bottom: 0,
+                            top: 0,
                             left: 'center',
                             show: stylingOptions?.showLegend !== false
                         };
@@ -1144,7 +1246,7 @@ const ChartPreview = ({
                     grid: {
                         ...baseConfig.grid,
                         top: '15%',
-                        bottom: '15%'
+                        bottom: mixedShowDataZoom ? '24%' : '15%'
                     },
                     xAxis: {
                         type: 'category',
@@ -1155,7 +1257,8 @@ const ChartPreview = ({
                                 fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor
                             }),
-                            rotate: stylingOptions?.xAxisRotation ?? 0
+                            rotate: stylingOptions?.xAxisRotation ?? 0,
+                            hideOverlap: true
                         },
                         axisLine: {
                             lineStyle: {
@@ -1163,6 +1266,25 @@ const ChartPreview = ({
                             }
                         }
                     },
+                    dataZoom: mixedShowDataZoom ? [
+                        {
+                            type: 'inside',
+                            xAxisIndex: 0,
+                            startValue: 0,
+                            endValue: 9
+                        },
+                        {
+                            type: 'slider',
+                            show: true,
+                            xAxisIndex: 0,
+                            bottom: 10,
+                            height: 15,
+                            handleSize: '80%',
+                            showDetail: false,
+                            startValue: 0,
+                            endValue: 9
+                        }
+                    ] : [],
                     yAxis: [
                         {
                             type: 'value',

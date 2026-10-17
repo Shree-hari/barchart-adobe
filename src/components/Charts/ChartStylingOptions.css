@@ -217,3 +217,20 @@ input:checked + .slider:before {
     transform: translateX(26px);
 }
 
+.styling-slider:disabled,
+.styling-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f0f0f0 !important;
+}
+
+.styling-slider:disabled::-webkit-slider-thumb {
+    background: #bbb;
+    cursor: not-allowed;
+}
+
+.styling-slider:disabled::-moz-range-thumb {
+    background: #bbb;
+    cursor: not-allowed;
+}
+

@@ -126,49 +126,49 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
 
                 // Try dynamic configuration first
                 const dynamicResult = await fetchDynamicConfig();
-                
+
                 if (dynamicResult.success) {
                     const projectConfig = dynamicResult.data;
-                    
+
                     // Fetch common config for email modal check
                     const commonConfig = await fetchCommonConfig();
-                    
+
                     if (commonConfig) {
                         // Check both isEnabled flags
                         const commonEnabled = commonConfig.flags?.adobe_express_integration?.free_access_popup?.isEnabled;
                         const projectEnabled = projectConfig.flags?.free_access_popup?.isEnabled;
-                        
+
                         // Both must be true for email modal
                         const modalEnabled = commonEnabled === true && projectEnabled === true;
                         setEmailModalEnabled(modalEnabled);
                     } else {
                         setEmailModalEnabled(false);
                     }
-                    
+
                     // Set flagsData from project config
                     setFlagsData(projectConfig);
                 } else {
                     // Fallback to direct fetch
                     const directResult = await fetchFlagsDirect();
-                    
+
                     if (directResult.success) {
                         const projectConfig = directResult.data;
-                        
+
                         // Fetch common config for email modal check
                         const commonConfig = await fetchCommonConfig();
-                        
+
                         if (commonConfig) {
                             // Check both isEnabled flags
                             const commonEnabled = commonConfig.flags?.adobe_express_integration?.free_access_popup?.isEnabled;
                             const projectEnabled = projectConfig.flags?.free_access_popup?.isEnabled;
-                            
+
                             // Both must be true for email modal
                             const modalEnabled = commonEnabled === true && projectEnabled === true;
                             setEmailModalEnabled(modalEnabled);
                         } else {
                             setEmailModalEnabled(false);
                         }
-                        
+
                         // Set flagsData from project config
                         setFlagsData(projectConfig);
                     } else {
@@ -271,17 +271,17 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                 setIsPro(false);
                 return;
             }
-            
+
             const { clientStorage } = addOnUISdk.instance;
             const storedKey = await clientStorage.getItem('licenseKey');
-            
+
             if (storedKey) {
                 try {
                     // Re-validate subscription with server
                     const validation = await revalidateSubscription(storedKey);
-                    
+
                     if (!validation.success || !validation.valid) {
-                        
+
                         // Revoke license if needed
                         if (validation.shouldRevoke) {
                             await clientStorage.removeItem('licenseKey');
@@ -290,32 +290,40 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                             return;
                         }
                     } else {
-                        // Store updated license data for offline checks
+                        // Store updated license data for offline checks (supports both old and new API formats)
                         const data = validation.licenseData;
                         const licenseDataToStore = {
+                            // New API fields
+                            type: data.type || validation.type,
+                            provider: data.provider || 'unknown',
+                            expires_at: data.expires_at,
+                            renewal_at: data.renewal_at,
+                            is_subscription: data.is_subscription,
+                            // Old API fields (for backward compatibility)
                             status: data.status,
-                            renewal_period_end: data.renewal_period_end,
-                            renewal_period_start: data.renewal_period_start,
+                            renewal_period_end: data.renewal_period_end || data.expires_at,
+                            renewal_period_start: data.renewal_period_start || data.created_at,
                             cancel_at_period_end: data.cancel_at_period_end,
+                            // Computed fields
                             subscription_type: validation.type,
                             expiresAt: validation.expiresAt ? validation.expiresAt.toISOString() : null,
                             lastValidated: new Date().toISOString()
                         };
-                        
+
                         await clientStorage.setItem('licenseData', JSON.stringify(licenseDataToStore));
-                        
+
                         setIsPro(true);
                     }
                 } catch (error) {
-                    
+
                     // Offline mode: Check cached data
                     const storedLicenseData = await clientStorage.getItem('licenseData');
-                    
+
                     if (storedLicenseData) {
                         try {
                             const licenseData = JSON.parse(storedLicenseData);
                             const cachedValidation = validateCachedLicense(licenseData);
-                            
+
                             if (!cachedValidation.valid) {
                                 if (cachedValidation.shouldRevoke) {
                                     await clientStorage.removeItem('licenseKey');
@@ -326,9 +334,9 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                                 }
                                 return;
                             }
-                            
+
                             setIsPro(true);
-                            
+
                         } catch (parseError) {
                             setIsPro(false);
                         }
@@ -347,60 +355,60 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
         }
     }, [addOnUISdk]);
 
-    // Email notification on first page load
-    useEffect(() => {
-        const notify = async () => {
-            // Check session storage to prevent duplicate notifications
-            if (sessionStorage.getItem('notificationSent')) {
-                return;
-            }
+    // Email notification on first page load - DISABLED
+    // useEffect(() => {
+    //     const notify = async () => {
+    //         // Check session storage to prevent duplicate notifications
+    //         if (sessionStorage.getItem('notificationSent')) {
+    //             return;
+    //         }
 
-            if (!addOnUISdk || !addOnUISdk.app) {
-                return;
-            }
+    //         if (!addOnUISdk || !addOnUISdk.app) {
+    //             return;
+    //         }
 
-            // Get webhook URL from config (flagsData)
-            // Try multiple possible locations in config
-            const webhookUrl = 
-                flagsData?.discord_webhook_url ||
-                flagsData?.notification_webhook_url ||
-                flagsData?.flags?.discord_webhook_url ||
-                flagsData?.flags?.notification_webhook_url ||
-                flagsData?.['adobe_express_integration']?.discord_webhook_url ||
-                null;
+    //         // Get webhook URL from config (flagsData)
+    //         // Try multiple possible locations in config
+    //         const webhookUrl = 
+    //             flagsData?.discord_webhook_url ||
+    //             flagsData?.notification_webhook_url ||
+    //             flagsData?.flags?.discord_webhook_url ||
+    //             flagsData?.flags?.notification_webhook_url ||
+    //             flagsData?.['adobe_express_integration']?.discord_webhook_url ||
+    //             null;
 
-            // If no webhook URL in config, skip notification
-            if (!webhookUrl) {
-                return;
-            }
+    //         // If no webhook URL in config, skip notification
+    //         if (!webhookUrl) {
+    //             return;
+    //         }
 
-            try {
-                // Get user ID from addOnUISdk
-                let userId = null;
-                if (typeof addOnUISdk.app.currentUser === 'object' && addOnUISdk.app.currentUser.userId) {
-                    userId = await addOnUISdk.app.currentUser.userId();
-                } else if (typeof addOnUISdk.app.currentUser === 'function') {
-                    userId = await addOnUISdk.app.currentUser();
-                } else if (addOnUISdk.app.currentUser) {
-                    userId = addOnUISdk.app.currentUser;
-                }
+    //         try {
+    //             // Get user ID from addOnUISdk
+    //             let userId = null;
+    //             if (typeof addOnUISdk.app.currentUser === 'object' && addOnUISdk.app.currentUser.userId) {
+    //                 userId = await addOnUISdk.app.currentUser.userId();
+    //             } else if (typeof addOnUISdk.app.currentUser === 'function') {
+    //                 userId = await addOnUISdk.app.currentUser();
+    //             } else if (addOnUISdk.app.currentUser) {
+    //                 userId = addOnUISdk.app.currentUser;
+    //             }
 
-                if (userId) {
-                    await sendDirectNotification(userId, webhookUrl);
-                    sessionStorage.setItem('notificationSent', 'true');
-                }
-            } catch (error) {
-                // Silently fail - don't break the app
-                console.warn('Notification failed:', error);
-            }
-        };
+    //             if (userId) {
+    //                 await sendDirectNotification(userId, webhookUrl);
+    //                 sessionStorage.setItem('notificationSent', 'true');
+    //             }
+    //         } catch (error) {
+    //             // Silently fail - don't break the app
+    //             console.warn('Notification failed:', error);
+    //         }
+    //     };
 
-        // Only notify if addOnUISdk is ready
-        // Don't wait for flagsData - if webhook URL is not in config, notification just won't be sent
-        if (addOnUISdk && addOnUISdk.app) {
-            notify();
-        }
-    }, [addOnUISdk, flagsData]);
+    //     // Only notify if addOnUISdk is ready
+    //     // Don't wait for flagsData - if webhook URL is not in config, notification just won't be sent
+    //     if (addOnUISdk && addOnUISdk.app) {
+    //         notify();
+    //     }
+    // }, [addOnUISdk, flagsData]);
 
     // Promotion config memo
     const promotionConfig = useMemo(() => {
@@ -448,13 +456,13 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                 return;
             }
             const dialogUrl = `promotion-dialog.html?template=${encodeURIComponent(templateKey)}`;
-            
+
             // Get title from template content header text
             const template = flagsData?.["ongoing-promotion"]?.templates?.[templateKey];
             const dialogTitle = template?.content?.header?.title || "Special Offer";
             const dialogHeight = template?.content?.specs?.height || 600;
             const dialogWidth = template?.content?.specs?.width || 960;
-            
+
             try {
                 await addOnUISdk.app.showModalDialog({
                     variant: "custom",
@@ -484,24 +492,24 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
             }
             if (actionType === "inScreenOpenUrl") {
                 const inScreenOpenUrlConfig = action.inScreenOpenUrl;
-                const targetUrl = 
-                    (typeof inScreenOpenUrlConfig === "object" && inScreenOpenUrlConfig?.url) 
-                        ? inScreenOpenUrlConfig.url 
-                        : (typeof inScreenOpenUrlConfig === "string" 
-                            ? inScreenOpenUrlConfig 
+                const targetUrl =
+                    (typeof inScreenOpenUrlConfig === "object" && inScreenOpenUrlConfig?.url)
+                        ? inScreenOpenUrlConfig.url
+                        : (typeof inScreenOpenUrlConfig === "string"
+                            ? inScreenOpenUrlConfig
                             : action.url);
-                
+
                 if (targetUrl) {
-                    const width = (typeof inScreenOpenUrlConfig === "object" && inScreenOpenUrlConfig?.width) 
-                        ? inScreenOpenUrlConfig.width 
+                    const width = (typeof inScreenOpenUrlConfig === "object" && inScreenOpenUrlConfig?.width)
+                        ? inScreenOpenUrlConfig.width
                         : 1200;
-                    const height = (typeof inScreenOpenUrlConfig === "object" && inScreenOpenUrlConfig?.height) 
-                        ? inScreenOpenUrlConfig.height 
+                    const height = (typeof inScreenOpenUrlConfig === "object" && inScreenOpenUrlConfig?.height)
+                        ? inScreenOpenUrlConfig.height
                         : 800;
-                    
+
                     const popupFeatures = `width=${width},height=${height},scrollbars=yes,resizable=yes`;
                     const popup = window.open(targetUrl, "offerPopup", popupFeatures);
-                    
+
                     if (popup) {
                         popup.focus();
                     } else {
@@ -530,11 +538,11 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
 
         const popupConfig = flagsData["ongoing-promotion"].onload_promotion_popup;
         const templateKey = popupConfig.template || promotionConfig?.buttonAction?.inScreenPopup?.currentTemplate;
-        
+
         if (!templateKey) {
             return;
         }
-        
+
         const delayMs = Math.max(0, (popupConfig.on_load_delay_seconds || 0) * 1000);
         const showOnlyOnce = popupConfig.show_only_once_per_user === true;
 
@@ -581,7 +589,7 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
         if (!addOnUISdk || !addOnUISdk.instance || !addOnUISdk.instance.clientStorage) {
             return;
         }
-        
+
         const { clientStorage } = addOnUISdk.instance;
         await clientStorage.removeItem('licenseKey');
         await clientStorage.removeItem('licenseData');
@@ -595,7 +603,7 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
         setConfettiKey(prev => prev + 1); // Force re-render
         setTimeout(() => {
             setShowConfetti(true);
-            
+
             // Auto-hide confetti after 8 seconds
             setTimeout(() => {
                 setShowConfetti(false);
@@ -608,22 +616,31 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
             console.warn('ClientStorage not available');
             return;
         }
-        
+
         const { clientStorage } = addOnUISdk.instance;
         await clientStorage.setItem('licenseKey', key);
-        
+
+        // Store full license data including expiration info (supports both old and new API formats)
         if (licenseData) {
             const licenseDataToStore = {
+                // New API fields
+                type: licenseData.type || 'subscription',
+                provider: licenseData.provider || 'unknown',
+                expires_at: licenseData.expires_at,
+                renewal_at: licenseData.renewal_at,
+                is_subscription: licenseData.is_subscription,
+                // Old API fields (for backward compatibility)
                 status: licenseData.status,
-                renewal_period_end: licenseData.renewal_period_end,
-                renewal_period_start: licenseData.renewal_period_start,
+                renewal_period_end: licenseData.renewal_period_end || licenseData.expires_at,
+                renewal_period_start: licenseData.renewal_period_start || licenseData.created_at,
                 cancel_at_period_end: licenseData.cancel_at_period_end,
+                // Computed fields
                 lastValidated: new Date().toISOString()
             };
-            
+
             await clientStorage.setItem('licenseData', JSON.stringify(licenseDataToStore));
         }
-        
+
         setIsPro(true);
         setDrawerLicenseKey('');
         setDrawerOpen(false);
@@ -634,14 +651,14 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
         if (!flagsData || !flagsData['pricing-page-details']) {
             return null;
         }
-        
+
         const pricingPageDetails = flagsData['pricing-page-details'];
         const projectPricingInfo = pricingPageDetails['pricing-info'];
-        
+
         if (projectPricingInfo && Array.isArray(projectPricingInfo) && projectPricingInfo.length > 0) {
             return projectPricingInfo;
         }
-        
+
         return null;
     };
 
@@ -655,7 +672,7 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                     {!isPro && (
                         <>
                             <div className="navbar-spacer"></div>
-                            <button 
+                            <button
                                 className="navbar-unlock-button"
                                 onClick={() => setDrawerOpen(true)}
                             >
@@ -679,7 +696,7 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                         className="navbar-menu-button"
                         onClick={handleSettingsClick}
                     >
-                        <sp-icon-more style={{width: 20, height: 20, color: '#888'}}></sp-icon-more>
+                        <sp-icon-more style={{ width: 20, height: 20, color: '#888' }}></sp-icon-more>
                     </button>
                 </div>
 
@@ -695,9 +712,8 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                             }}
                         >
                             <div
-                                className={`promotion-banner__text ${
-                                    promotionConfig.banner.marquee_enabled ? "promotion-banner__text--marquee" : ""
-                                }`}
+                                className={`promotion-banner__text ${promotionConfig.banner.marquee_enabled ? "promotion-banner__text--marquee" : ""
+                                    }`}
                             >
                                 <span>{promotionConfig.banner.title}</span>
                             </div>
@@ -713,9 +729,9 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                     )}
 
                     <div className="app-view-content">
-                        <ChartGenerator 
-                            sandboxProxy={sandboxProxy} 
-                            isPro={isPro} 
+                        <ChartGenerator
+                            sandboxProxy={sandboxProxy}
+                            isPro={isPro}
                             addOnUISdk={addOnUISdk}
                             onOpenUpgradeDrawer={() => setDrawerOpen(true)}
                             emailModalEnabled={emailModalEnabled}
@@ -734,13 +750,13 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                                 <h2>Settings</h2>
                                 <button className="drawer-close" onClick={() => setPopoverOpen(false)}>×</button>
                             </div>
-                            
+
                             <div className="drawer-content">
                                 <div className="settings-menu-list">
                                     {isPro ? (
                                         // Premium user menu options
                                         <>
-                                            <button 
+                                            <button
                                                 className="settings-menu-item"
                                                 onClick={() => {
                                                     window.open(MANAGE_SUBSCRIPTION_URL, "_blank");
@@ -749,7 +765,7 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                                             >
                                                 Manage Subscription
                                             </button>
-                                            
+
                                             {/* Dynamic settings menu items from configuration */}
                                             {flagsData?.['settings-menu-items']?.map((item, index) => {
                                                 if (item.isEnabled) {
@@ -768,7 +784,7 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                                                 }
                                                 return null;
                                             })}
-                                            
+
                                             <button
                                                 className="settings-menu-item"
                                                 onClick={() => {
@@ -790,7 +806,7 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                                             >
                                                 Activate License Key
                                             </button>
-                                            
+
                                             {/* Dynamic settings menu items from configuration */}
                                             {flagsData?.['settings-menu-items']?.map((item, index) => {
                                                 if (item.isEnabled) {
@@ -825,7 +841,7 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                                 <h2>Unlock Upgrade</h2>
                                 <button className="drawer-close" onClick={() => setDrawerOpen(false)}>×</button>
                             </div>
-                            
+
                             <div className="drawer-content">
                                 {/* License Key Activation Section */}
                                 <div className="drawer-license-section">
@@ -842,8 +858,8 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                                         }}
                                     />
                                     {drawerLicenseError && <p className="drawer-license-error">{drawerLicenseError}</p>}
-                                    <button 
-                                        className="drawer-license-activate-button" 
+                                    <button
+                                        className="drawer-license-activate-button"
                                         onClick={async () => {
                                             if (!drawerLicenseKey) {
                                                 setDrawerLicenseError('Please enter a license key.');
@@ -851,20 +867,23 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                                             }
                                             setDrawerLicenseError('');
                                             setDrawerLicenseLoading(true);
-                                            
+
                                             try {
-                                                const WORKER_URL = 'https://api.swiftools.com/license-verifier';
-                                                const response = await fetch(WORKER_URL, {
+                                                const API_URL = 'https://api.swiftools.com/license-validator';
+                                                const response = await fetch(API_URL, {
                                                     method: 'POST',
                                                     headers: {
                                                         'Content-Type': 'application/json',
                                                     },
-                                                    body: JSON.stringify({ licenseKey: drawerLicenseKey, productName: 'charts-pro'}),
+                                                    body: JSON.stringify({
+                                                        license_identifier: drawerLicenseKey,
+                                                        product_name: 'charts-pro'
+                                                    }),
                                                 });
-                                                
+
                                                 const data = await response.json();
-                                                
-                                                if (response.ok && data.valid === true && (data.status === 'active' || data.status === 'completed')) {
+
+                                                if (response.ok && data.valid === true) {
                                                     await handleLicenseVerified(drawerLicenseKey, data);
                                                 } else {
                                                     const errorMessage = data.message || 'License validation failed: Try again later.';
@@ -889,7 +908,7 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                                     {getPricingData() ? (
                                         <div className="drawer-pricing-options">
                                             {getPricingData().map((plan, index) => (
-                                                <div 
+                                                <div
                                                     key={index}
                                                     className={`drawer-pricing-option ${plan.isHighlighted ? 'drawer-pricing-option--highlighted' : ''}`}
                                                     onClick={() => {

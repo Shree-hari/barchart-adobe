@@ -189,6 +189,15 @@ const ChartDataUploader = ({ onDataUploaded, onClose }) => {
       return;
     }
 
+    const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024; // 1 MB
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setWarningMessage('File size exceeds the maximum limit of 1 MB. Please upload a smaller, compliant CSV or Excel file (less than 1 MB).');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
     const fileName = file.name.toLowerCase();
     const isCSV = fileName.endsWith('.csv');
     const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');

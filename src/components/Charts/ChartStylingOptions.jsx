@@ -638,7 +638,9 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
             <div className="styling-section">
                 <h3 className="styling-section-title">
                     Font Weight
-                    <RefreshIcon onClick={() => handleReset('fontWeight', 400)} />
+                    {localOptions.fontStyle !== 'bold' && (
+                        <RefreshIcon onClick={() => handleReset('fontWeight', 400)} />
+                    )}
                 </h3>
                 <div className="slider-group">
                     <input
@@ -649,6 +651,7 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                         value={localOptions.fontWeight}
                         onChange={handleFontWeightChange}
                         className="styling-slider"
+                        disabled={localOptions.fontStyle === 'bold'}
                     />
                     <input
                         type="number"
@@ -658,6 +661,7 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                         step={100}
                         onChange={handleFontWeightChange}
                         className="styling-input"
+                        disabled={localOptions.fontStyle === 'bold'}
                     />
                 </div>
             </div>
